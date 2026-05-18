@@ -60,7 +60,7 @@ if prompt := st.chat_input("想問什麼事"):
 
             # 呼叫 Groq API
             response = st.session_state.groq_client.chat.completions.create(
-                model="llama3-8b-8192", 
+                model="llama-3.1-8b-instant", 
                 messages=api_messages,
                 temperature=0.7
             )
