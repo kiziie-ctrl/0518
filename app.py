@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from google import genai
+from google import Groq
 from google.genai import types
 
 # 頁面設定
@@ -27,7 +27,7 @@ if "gemini_client" not in st.session_state:
         st.error("未找到 GEMINI_API_KEY")
         st.stop()
 
-    client = genai.Client(api_key=api_key)
+    client = Groq.Client(api_key=api_key)
     st.session_state.gemini_client = client
 
     system_instruction = (
@@ -45,7 +45,7 @@ if "gemini_client" not in st.session_state:
 
     # 設定使用 Gemini 2.5
     st.session_state.chat_session = client.chats.create(
-        model="gemini-2.5-flash", 
+        model="llama3-8b-8192", 
         config=config
     )
     
