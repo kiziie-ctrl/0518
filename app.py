@@ -1,7 +1,6 @@
 import streamlit as st
 import json
 from groq import Groq
-from google.genai import types
 
 # 頁面設定
 st.set_page_config(page_title="附中 AI 導覽員")
@@ -19,36 +18,25 @@ except Exception as e:
     st.error(f"讀取 JSON 發生錯誤：{e}")
     st.stop()
 
+# 系統人設指令
+system_instruction = (
+    f"你是陽明交大附中導覽員「小北」。\n"
+    f"請優先參考以下內容回答。\n\n"
+    f"內容：\n{context_text}"
+)
+
 # 初始化 API 與對話
-if "gemini_client" not in st.session_state:
+if "groq_client" not in st.session_state:
     try:
-        api_key = st.secrets["GEMINI_API_KEY"]
+        api_key = st.secrets["GROQ_API_KEY"]
     except KeyError:
-        st.error("未找到 GEMINI_API_KEY")
+        st.error("未找到 GROQ_API_KEY")
         st.stop()
-
-    client = Groq.Client(api_key=api_key)
-    st.session_state.gemini_client = client
-
-    system_instruction = (
-        f"你是陽明交大附中導覽員「小北」。\n"
-        f"請優先參考以下內容回答，若找不到請自動搜尋。\n\n"
-        f"內容：\n{context_text}"
-    )
-
-    config = types.GenerateContentConfig(
-        system_instruction=system_instruction,
-        tools=[types.Tool(google_search=types.GoogleSearch())],
-        temperature=0.7,
-    )
-    st.session_state.config = config
-
-    # 設定使用 Gemini 2.5
-    st.session_state.chat_session = client.chats.create(
-        model="llama3-8b-8192", 
-        config=config
-    )
     
+    # 建立 Groq 客戶端
+    client = Groq(api_key=api_key)
+    st.session_state.groq_client = client
+
     st.session_state.messages = [
         {"role": "assistant", "content": "你好，我是導覽員小北，請隨時發問。"}
     ]
@@ -58,19 +46,30 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# 處理輸入
+# 處理使用者輸入
 if prompt := st.chat_input("想問什麼事"):
     st.chat_message("user").write(prompt)
+    
+    # 將使用者訊息加入歷史紀錄清單中
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.spinner("處理中"):
         try:
-            response = st.session_state.chat_session.send_message(prompt)
-            response_text = response.text
+            # 將系統人設與歷史紀錄合併，準備傳給 Groq
+            api_messages = [{"role": "system", "content": system_instruction}] + st.session_state.messages
+
+            # 呼叫 Groq API
+            response = st.session_state.groq_client.chat.completions.create(
+                model="llama3-8b-8192", 
+                messages=api_messages,
+                temperature=0.7
+            )
+            
+            # 取得模型回應文字
+            response_text = response.choices[0].message.content
             
             st.chat_message("assistant").write(response_text)
             st.session_state.messages.append({"role": "assistant", "content": response_text})
             
         except Exception as e:
             st.error(f"對話發生異常：{e}")
-            st.info("可能是 API 或模型限制")
