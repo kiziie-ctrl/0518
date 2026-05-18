@@ -5,7 +5,7 @@ from google.genai import types
 
 # 頁面設定
 st.set_page_config(page_title="附中 AI 導覽員")
-st.title("陽明交大附中 - 小北")
+st.title("陽明交大附中 - 小北導覽")
 
 # 讀取背景知識
 try:
