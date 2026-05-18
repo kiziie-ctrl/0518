@@ -1,6 +1,6 @@
 import streamlit as st
 import json
-from google import Groq
+from groq import Groq
 from google.genai import types
 
 # 頁面設定
